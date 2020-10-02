@@ -3,7 +3,12 @@ plugins:
     default: true
   ootd_bestof_discourse_api_username:
     default: ""
+    type: username
   ootd_bestof_discourse_api_key:
     default: ""
-  ootd_bestof_imgur_api_key:
+    secret: true
+  ootd_bestof_imgur_client_id:
     default: ""
+    client: true
+  ootd_bestof_topic_id:
+    default: 0

@@ -2,6 +2,7 @@
 # about: A super simple plugin to demonstrate how plugins work
 # version: 0.0.1
 # authors: Maël Lavault
+enabled_site_setting :ootd_bestof_enabled
 
 gem 'mime-types-data', '3.2020.0512'
 gem 'mime-types', '3.3.1'
@@ -9,32 +10,57 @@ gem 'json', '2.3.1'
 gem 'multi_xml', '0.6.0'
 gem 'httparty', '0.18.1'
 
+add_admin_route 'ootd_bestof.admin.title', 'ootd-bestof'
 
-OOTD_TOPIC_ID = 11
+Discourse::Application.routes.append do
+  get '/admin/plugins/ootd-bestof' => 'admin/plugins#index', constraints: StaffConstraint.new
+  get '/admin/plugins/ootd-bestof/callback' => 'admin/plugins#index', constraints: StaffConstraint.new
+  post '/admin/plugins/ootd-bestof/auth' => 'auth#save', constraints: StaffConstraint.new
+end
 
 after_initialize do
-  class ::Jobs::OOTDBestof < Jobs::Scheduled
-    every 30.seconds
+  PLUGIN_NAME = "OOTD Bestof"
+  OOTD_TOPIC_ID = SiteSetting.ootd_bestof_topic_id
+
+  class ::AuthController < ::ApplicationController
+    def save
+      access_token = params.require(:access_token)
+      refresh_token = params.require(:refresh_token)
+      OotdBestof::Store.set("access_token", access_token)
+      OotdBestof::Store.set("refresh_token", refresh_token)
+      head :ok
+    end
+
+    def refresh_token
+
+    end
+  end
+
+  class ::Jobs::OotdBestof < Jobs::Scheduled
+    every 1.week
 
     def initialize
-      @ootd_plugin = OOTDBestof::OOTDBestofController.new
-      @imgur_uploader = OOTDBestof::ImgurController.new
+      @ootd_plugin = OotdBestof::OotdBestofController.new
+      @imgur_uploader = OotdBestof::ImgurController.new(OotdBestof::Store.get('access_token'))
     end
 
     def execute(args)
       posts = @ootd_plugin.download_all_posts(Date.today.weeks_ago(1).beginning_of_week(:sunday))
-      albumHash = @imgur_uploader.create_album
-      # @imgur_uploader.upload_images_to_album(albumHash)
+      album = @imgur_uploader.create_album
+      for post in posts do
+        for imageUrl in post['images'] do
+            @imgur_uploader.upload_images_to_album(album["id"], imageUrl)
+        end
+      end
     end
   end
 
   require 'httparty'
-  module ::OOTDBestof
-    class OOTDBestof::OOTDBestofController < ApplicationController
+  module ::OotdBestof
+    class OotdBestof::OotdBestofController < ApplicationController
       include HTTParty
-      debug_output $stdout
       base_uri 'localhost:3000'
-      headers "Api-Username" => 'mael.lavault'
+      headers "Api-Username" => SiteSetting.ootd_bestof_discourse_api_username
       headers "Api-Key" => SiteSetting.ootd_bestof_discourse_api_key
       headers 'Content-Type' => 'application/json'
       headers 'X-Requested-With' => 'XMLHttpRequest'
@@ -123,45 +149,48 @@ after_initialize do
 
         # sort the posts by likes
         sorted_posts = final_posts.sort_by! { |k| -k["likes"]}
-
-        puts sorted_posts
-
-        # # Write output in a file on disk
-        # Path(f"output/week_{start_date}_{end_date}/images").mkdir(parents=True, exist_ok=True)
-        # Path(f"output/week_{start_date}_{end_date}/posts").mkdir(parents=True, exist_ok=True)
-
-        # with open(f"output/week_{start_date}_{end_date}/images/images_url.txt","w+") as posts_file:
-        #     for post in sorted_posts
-        #         for image_url in post['images'] do
-        #             posts_file.write(f'{image_url}\n')
-        #         end
-        #       end
-
-        # with open(f"output/week_{start_date}_{end_date}/posts/ordered_ootd_posts.txt","w+") as posts_file:
-        #     for post in sorted_posts do
-        #         posts_file.write(f'{json.dumps(post)}\n')
-        #     end
+        return sorted_posts
       end
     end
 
-    class OOTDBestof::ImgurController < ApplicationController
+    class OotdBestof::ImgurController < ApplicationController
       include HTTParty
       debug_output $stdout
-      base_uri 'api.imgur.com/3'
-      headers "Authorization" => "Bearer #{SiteSetting.ootd_bestof_ingur_api_key}"
-      headers 'Content-Type' => 'application/json'
-      headers 'Accept' => 'application/json'
+      base_uri 'https://api.imgur.com/3'
 
-      def create_album
-        options = {body: {title: 'My dank meme album', description: 'This albums contains a lot of dank memes. Be prepared.', cover: imageHash}
-        response = self.class.post('/album', options)
-        puts response.parsed_response
+      #handle check token in before_action
+
+      def initialize(access_token)
+        self.class.headers "Authorization" => "Bearer #{access_token}"
       end
 
-      def upload_images_to_album(albumHash)
-        options = {body: {image: imageUrl, album: @albumHash, title: imageTitle, description: imageDescription}
+      def create_album
+        options = {body: {title: 'Semaine du 28 septembre au 4 octobre 2020'}}
+        response = self.class.post('/album', options)
+        return response.parsed_response["data"]
+      end
+
+      def upload_images_to_album(albumId, imageUrl)
+        options = {body: {image: imageUrl, album: albumId, type: "url"}} #title: imageTitle, description: imageDescription
         response = self.class.post('/upload', options)
         puts response.parsed_response
+        return response.parsed_response
+      end
+    end
+
+    require_dependency 'plugin_store'
+
+    class Store
+      def self.set(key, value)
+        ::PluginStore.set(PLUGIN_NAME, key, value)
+      end
+
+      def self.get(key)
+        ::PluginStore.get(PLUGIN_NAME, key)
+      end
+
+      def self.remove(key)
+        ::PluginStore.remove(PLUGIN_NAME, key)
       end
     end
   end

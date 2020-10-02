@@ -1,6 +1,9 @@
 en:
   site_settings:
     ootd_bestof_enabled: "Enable OOTD Best-of"
+    ootd_bestof_imgur_client_id: "Imgur Client ID"
+    ootd_bestof_imgur_client_secret: "Imgur Client secret"
     ootd_bestof_imgur_api_key: "Imgur API key"
     ootd_bestof_discourse_api_key: "Discourse API key"
     ootd_bestof_discourse_api_username: "Discourse API username"
+    ootd_bestof_topic_id: "OOTD topic ID"
