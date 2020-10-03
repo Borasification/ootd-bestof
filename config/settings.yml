@@ -10,5 +10,12 @@ plugins:
   ootd_bestof_imgur_client_id:
     default: ""
     client: true
+  ootd_bestof_imgur_client_secret:
+    default: ""
+    secret: true
   ootd_bestof_topic_id:
     default: 0
+  ootd_bestof_run_hour:
+    default: 23
+    min: 0
+    max: 23
