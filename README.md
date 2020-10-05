@@ -27,4 +27,4 @@ Now in the Discourse settings fill in those fields:
 `ootd bestof imgur client secret`
 with what imgur gave you.
 
-Go to the `Admin/Plugins/OOTD Best of` menu and click the `Show OOTD bestof` button. It should open a new page on imgur asking you to login and authorize the app. Once it's done you're all setup!
+Go to the `Admin/Plugins/OOTD Best of` menu and click the `Authenticate` button. It should open a new page on imgur asking you to login and authorize the app. Once it's done you're all setup!
