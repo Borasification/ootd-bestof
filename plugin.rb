@@ -36,8 +36,6 @@ after_initialize do
     every 30.seconds
 
     def initialize
-      auth = AuthController.new
-      puts auth.token_valid?
       @today = Date.today
       @current_time = Time.now
       return unless (@today.saturday? && @current_time.hour == SiteSetting.ootd_bestof_run_hour)
@@ -47,7 +45,7 @@ after_initialize do
 
     def execute(args)
       return unless (@today.saturday? && @current_time.hour == SiteSetting.ootd_bestof_run_hour)
-      posts = @ootd_plugin.download_all_posts(Date.today.weeks_ago(1).beginning_of_week(:sunday))
+      posts = @ootd_plugin.download_all_posts(Date.today.prev_week())
       album = @imgur_uploader.create_album
       for post in posts do
         for imageUrl in post['images'] do
@@ -170,7 +168,7 @@ after_initialize do
       end
 
       def create_album
-        options = {body: {title: 'Semaine du 28 septembre au 4 octobre 2020'}}
+        options = {body: {title: "Semaine du #{Date.today.prev_week().strftime("%-d %B")} au #{Date.today.to_s(:long)}"}}
         response = self.class.post('/3/album', options)
         if response.code == 200
           return response

@@ -3,4 +3,4 @@ en:
     ootd_bestof:
       admin:
         title: "OOTD Best-of"
-        show: "Show OOTD Best-of"
+        authenticate: "Authenticate"
