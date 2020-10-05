@@ -33,7 +33,7 @@ after_initialize do
   end
 
   class ::Jobs::OotdBestof < Jobs::Scheduled
-    every 30.seconds
+    every 1.hour
 
     def initialize
       @today = Date.today
