@@ -1,5 +1,7 @@
 # OOTD Bestof Discourse plugin
 
+Based on François Helg's https://github.com/Borasification/fetch-ootd-posts script
+
 ## Installation
 
 Copy the entire directory into the discourse `plugin/ootd-bestof` directory
